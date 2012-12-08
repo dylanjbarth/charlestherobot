@@ -34,7 +34,7 @@ bool talking = false;
 #define MY_SIZE 500 // sample time length for calibrating silence
 #define MEASURE 50 // sample time length for measuring talking
 #define TALKING_MEASURES 2 // # of measures for talking threshold
-#define FILE_COUNT 16 // number of WAV files on SD card
+#define FILE_COUNT 12 // number of WAV files on SD card
 #define error(msg) error_P(PSTR(msg))
 
 // variable ints
@@ -69,66 +69,71 @@ Void Loop
 ==================================================================== */
 
 void loop() {
-	// Part 1: Calibration
-	if (calibrated == false) {
-		// 0. wait for user to press button when things are quiet 
-		while (digitalRead(calibrationButton) == 1) {
-			// light LED?
-			continue;
-		}
+	// // Part 1: Calibration
+	// if (calibrated == false) {
+	// 	// 0. wait for user to press button when things are quiet 
+	// 	while (digitalRead(calibrationButton) == 1) {
+	// 		// light LED?
+	// 		continue;
+	// 	}
 
-		// 1. store a reading of values over time: MY_SIZE
-		int counter = 0;
-		int silenceArray[MY_SIZE];
-		while (counter < MY_SIZE) {
-			silenceArray[counter] = analogRead(micPin);
-			counter ++;
-		}
+	// 	// 1. store a reading of values over time: MY_SIZE
+	// 	int counter = 0;
+	// 	int silenceArray[MY_SIZE];
+	// 	while (counter < MY_SIZE) {
+	// 		silenceArray[counter] = analogRead(micPin);
+	// 		counter ++;
+	// 	}
 
-		// 2. find  & define silence average of these values
-		int sum = 0;
-		for (int i=0; i<MY_SIZE; i++) {
-			sum += silenceArray[i];
-		}
-		averageSilence = sum / MY_SIZE;  
-		calibrated = true;
-	}
-
-
-	// Part 2: Identifying Speech
-	// A. Take measures until reading at least two talking measurements 
-	do {
-		// 0. create an array of measured values
-		int counter = 0;
-		int measureArray[MEASURE];
-		while (counter < MEASURE) {
-			measureArray[counter] = analogRead(micPin);
-			counter ++;
-		}
-
-		// 1. average values
-		int sum = 0;
-		for (int i=0; i<MEASURE; i++) {
-			sum += measureArray[i];
-		}
-		measureAverage = sum/MEASURE;
-
-		// 2. compare this to silence threshold
-		if (measureAverage > averageSilence) {
-			timesAboveThreshold ++;
-		}
-		if (timesAboveThreshold > TALKING_MEASURES) {
-			talking = true;
-		}
+	// 	// 2. find  & define silence average of these values
+	// 	int sum = 0;
+	// 	for (int i=0; i<MY_SIZE; i++) {
+	// 		sum += silenceArray[i];
+	// 	}
+	// 	averageSilence = sum / MY_SIZE;  
+	// 	calibrated = true;
+	// }
 
 
-	} while ((talking == false) || (measureAverage <= averageSilence)); // will exit loop when talking is true AND silence is achieved
+	// // Part 2: Identifying Speech
+	// // A. Take measures until reading at least two talking measurements 
+	// do {
+	// 	// 0. create an array of measured values
+	// 	int counter = 0;
+	// 	int measureArray[MEASURE];
+	// 	while (counter < MEASURE) {
+	// 		measureArray[counter] = analogRead(micPin);
+	// 		counter ++;
+	// 	}
+
+	// 	// 1. average values
+	// 	int sum = 0;
+	// 	for (int i=0; i<MEASURE; i++) {
+	// 		sum += measureArray[i];
+	// 	}
+	// 	measureAverage = sum/MEASURE;
+
+	// 	// 2. compare this to silence threshold
+	// 	if (measureAverage > averageSilence) {
+	// 		timesAboveThreshold ++;
+	// 	}
+	// 	if (timesAboveThreshold > TALKING_MEASURES) {
+	// 		talking = true;
+	// 	}
+
+
+	// } while ((talking == false) || (measureAverage <= averageSilence)); // will exit loop when talking is true AND silence is achieved
 
 
 	// Part 3: Responding
+	for (int i=0; i<11; i++) {
+		playByIndex(i);
+	}
+
+
 	// generate random number corresponding to aduio response file index
-	int randomFile = random(0, FILE_COUNT);
-	playByIndex(randomFile);
+	// int randomFile = random(2, FILE_COUNT);
+	// playByIndex(randomFile);
 }
 
 /* ====================================================================
@@ -180,9 +185,13 @@ void indexFiles(void) {
   
   for (uint8_t i = 0; i < FILE_COUNT; i++) {
     
+    Serial.println(name);
+
     // Make file name
     name[4] = fileLetter[i];
     
+    Serial.println(fileLetter[i]);
+
     // Open file by name
     if (!file.open(root, name)) error("open by name");
     
