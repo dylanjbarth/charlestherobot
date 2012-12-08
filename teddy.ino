@@ -61,11 +61,11 @@ Functions
 ==================================================================== */
 
 int calibrate() {
-	"""
+	/*
 	calibrate returns a int that represents the average level of noise in the surrounding environment. 
 	The idea is to set a noise threshold so that human speech can be differentiated from the background. 
 	Note: There are major flaws with this strategy =(
-	"""
+	*/
 	// wait for user to press calibration button
 	while (checkForSilence() == false) {
 		continue;
@@ -76,22 +76,23 @@ int calibrate() {
 	int counter = 0;
 	// record input while calibration button is pressed
 	while (checkForSilence() == true) {
-		int micInput = digitalRead(micPin);
+		int micInput = analogRead(micPin);
 		// only update array for first 200 values
 		if (counter < MY_SIZE) {
-			silenceArray = addToList(silenceArray, micInput);
+			silenceArray[counter] = micInput;
 		}
 		counter ++;
 	}
 	// finally average array, return a silence threshold
-	return int threshold = findAverage(silenceArray);
+	// int threshold = findAverage(silenceArray);
+	return threshold;
 }
 
 bool checkForSilence() {
-	"""
+	/*
 	checkForSilence returns a boolean variable indicating whether or not the user 
 	is holding down the calibration button. 
-	"""
+	*/
 	// if digitalRead of calibrationButton returns 1, the user is not pressing.
 	if (digitalRead(calibrationButton)) {
 		return false;
@@ -100,27 +101,10 @@ bool checkForSilence() {
 	}
 }
 
-int addToList(list, input) {
-	"""
-	addToList takes two variables, an array and a value to be added. Finds the first 0
-	space in the array and adds to value there, returning the new array.
-	"""
-	int counter = 0;
-	int val = 1;
-	// index through the array until it finds a 0 
-	while (val != 0) {
-		val = list[counter];
-		counter ++;
-	}
-	// when it breaks, fill in this array value with desired value
-	list[counter] = input;
-	return list;
-}
-
-int findAverage(list) {
-	"""
+int findAverage(int list) {
+	/*
 	findAverage take the list and returns the average value in the list.
-	"""
+	*/
 	int counter = 0;
 	int total = 0;
 	while (counter < MY_SIZE) {
