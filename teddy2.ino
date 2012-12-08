@@ -35,6 +35,7 @@ bool talking = false;
 #define MEASURE 50 // sample time length for measuring talking
 #define TALKING_MEASURES 2 // # of measures for talking threshold
 #define FILE_COUNT 16 // number of WAV files on SD card
+#define error(msg) error_P(PSTR(msg))
 
 // variable ints
 int timesAboveThreshold = 0; // a measure of number of intervals talking is true
@@ -50,7 +51,6 @@ void setup() {
 	pinMode(calibrationButton, INPUT);
 	pinMode(micPin, INPUT);
 
-	// from WaveHC example code
 	if (!card.init()) error("card.init");
 
 	// enable optimized read - some cards may timeout
@@ -62,12 +62,6 @@ void setup() {
 
 	PgmPrintln("Index files");
 	indexFiles();
-
-	PgmPrintln("Play files by index");
-	playByIndex();
-
-	PgmPrintln("Play files by name");
-	playByName();
 }
 
 /* ====================================================================
@@ -132,27 +126,38 @@ void loop() {
 
 
 	// Part 3: Responding
-	// generate random number corresponding to response
-	int randomNumber = random(1, 8);
-
-	// use waveHC library
-
-		// read until something is over silence, (probably will have to play with these #'s) 
-
-		// start appending, until you find silence again for a period of time
-
-	// if average of the array meets time and volume threshold, initiate a response
-
-	// randomResponse() will return a random canned response
-
-	// speak(response) will speak the response
+	// generate random number corresponding to aduio response file index
+	int randomFile = random(0, FILE_COUNT);
+	playByIndex(randomFile);
 }
 
 /* ====================================================================
 Functions
 ==================================================================== */
 
-// from WaveHC example code:
+// from WaveHC example code (chunks cut out for simplicity and :
+
+/////////////////////////////////// HELPERS
+/*
+ * print error message and halt
+ */
+void error_P(const char *str) {
+  PgmPrint("Error: ");
+  SerialPrint_P(str);
+  sdErrorCheck();
+  while(1);
+}
+/*
+ * print error message and halt if SD I/O error, great for debugging!
+ */
+void sdErrorCheck(void) {
+  if (!card.errorCode()) return;
+  PgmPrint("\r\nSD I/O error: ");
+  Serial.print(card.errorCode(), HEX);
+  PgmPrint(", ");
+  Serial.println(card.errorData(), HEX);
+  while(1);
+}
 
 // Files are 'touch tone phone' DTMF tones, P = #, S = *
 // Most phones don't have A, B, C, and D tones.
@@ -190,14 +195,14 @@ void indexFiles(void) {
 /*
  * Play file by index and print latency in ms
  */
-void playByIndex(void) {
-  for (uint8_t i = 0; i < FILE_COUNT; i++) {
+void playByIndex(int index) {
+  // for (uint8_t i = 0; i < FILE_COUNT; i++) {
     
     // start time
-    uint32_t t = millis();
+    // uint32_t t = millis();
     
     // open by index
-    if (!file.open(root, fileIndex[i])) {
+    if (!file.open(root, fileIndex[index])) {
       error("open by index");
     }
     
@@ -205,15 +210,15 @@ void playByIndex(void) {
     if (!wave.create(file)) error("wave.create");
     wave.play();
     
-    // print time to open file and start play
-    Serial.println(millis() - t);
+    // // print time to open file and start play
+    // Serial.println(millis() - t);
     
-    // stop after PLAY_TIME ms
-    while((millis() - t) < PLAY_TIME);
-    wave.stop();
+    // // stop after PLAY_TIME ms
+    // while((millis() - t) < PLAY_TIME);
+    // wave.stop();
     
     // check for play errors
     sdErrorCheck();
-  }
+  // }
   PgmPrintln("Done");
 }
