@@ -9,13 +9,17 @@
 Wave Shield library and dependencies from: http://www.ladyada.net/make/waveshield/libraryhc.html
 ==================================================================== */
 
-#include <WaveHC.h>
-#include <WaveUtil.h>
+#include <FatReader.h>
+#include <SdReader.h>
+#include <avr/pgmspace.h>
+#include "WaveUtil.h"
+#include "WaveHC.h"
 
 SdReader card;    // This object holds the information for the card
 FatVolume vol;    // This holds the information for the partition on the card
-FatReader root;   // This holds the information for the volumes root directory
-FatReader file;   // This object represent the WAV file 
+FatReader root;   // This holds the information for the filesystem on the card
+FatReader f;      // This holds the information for the file we're play
+
 WaveHC wave;      // This is the only wave (audio) object, since we will only play one at a time
 
 /* ====================================================================
@@ -34,7 +38,7 @@ bool talking = false;
 #define MY_SIZE 500 // sample time length for calibrating silence
 #define MEASURE 50 // sample time length for measuring talking
 #define TALKING_MEASURES 2 // # of measures for talking threshold
-#define FILE_COUNT 12 // number of WAV files on SD card
+#define FILE_COUNT 11 // number of WAV files on SD card
 #define error(msg) error_P(PSTR(msg))
 
 // variable ints
@@ -51,17 +55,44 @@ void setup() {
 	pinMode(calibrationButton, INPUT);
 	pinMode(micPin, INPUT);
 
-	if (!card.init()) error("card.init");
+	putstring("Free RAM: ");       // This can help with debugging, running out of RAM is bad
+	Serial.println(freeRam());      // if this is under 150 bytes it may spell trouble!
+	//  if (!card.init(true)) { //play with 4 MHz spi if 8MHz isn't working for you
+	if (!card.init()) {         //play with 8 MHz spi (default faster!)  
+	putstring_nl("Card init. failed!");  // Something went wrong, lets print out why
+	sdErrorCheck();
+	while(1);                            // then 'halt' - do nothing!
+	}
 
-	// enable optimized read - some cards may timeout
+	// enable optimize read - some cards may timeout. Disable if you're having problems
 	card.partialBlockRead(true);
 
-	if (!vol.init(card)) error("vol.init");
+	// Now we will look for a FAT partition!
+	uint8_t part;
+	for (part = 0; part < 5; part++) {     // we have up to 5 slots to look in
+	if (vol.init(card, part)) 
+	  break;                             // we found one, lets bail
+	}
+	if (part == 5) {                       // if we ended up not finding one  :(
+	putstring_nl("No valid FAT partition!");
+	sdErrorCheck();      // Something went wrong, lets print out why
+	while(1);                            // then 'halt' - do nothing!
+	}
 
-	if (!root.openRoot(vol)) error("openRoot");
+	// Lets tell the user about what we found
+	putstring("Using partition ");
+	Serial.print(part, DEC);
+	putstring(", type is FAT");
+	Serial.println(vol.fatType(),DEC);     // FAT16 or FAT32?
 
-	PgmPrintln("Index files");
-	indexFiles();
+	// Try to open the root directory
+	if (!root.openRoot(vol)) {
+	putstring_nl("Can't open root dir!"); // Something went wrong,
+	while(1);                             // then 'halt' - do nothing!
+	}
+
+	// Whew! We got past the tough parts.
+	putstring_nl("Ready!");
 }
 
 /* ====================================================================
@@ -124,11 +155,38 @@ void loop() {
 
 	// } while ((talking == false) || (measureAverage <= averageSilence)); // will exit loop when talking is true AND silence is achieved
 
-
+	playcomplete("1.wav");
+	playcomplete("2.wav");
 	// Part 3: Responding
-	for (int i=0; i<11; i++) {
-		playByIndex(i);
-	}
+	switch (random(1, 9)) {
+	    case 1:
+	      playcomplete("3.wav");
+	      break;
+	    case 2:
+	      playcomplete("4.wav");
+	      break;
+	    case 3:
+	      playcomplete("5.wav");
+	      break;
+	    case 4:
+	      playcomplete("6.wav");
+	      break;
+	    case 5:
+	      playcomplete("7.wav");
+	      break;
+	    case 6:
+	      playcomplete("8.wav");
+	      break;
+	    case 7:
+	      playcomplete("9.wav");
+	      break;
+	    case 8:
+	      playcomplete("10.wav");
+	      break;
+	    case 9:
+	      playcomplete("11.wav");
+	      break;
+	  }
 
 
 	// generate random number corresponding to aduio response file index
@@ -140,7 +198,7 @@ void loop() {
 Functions
 ==================================================================== */
 
-// from WaveHC example code (chunks cut out for simplicity and :
+// from WaveHC example code (chunks cut out for simplicity and function):
 
 /////////////////////////////////// HELPERS
 /*
@@ -164,70 +222,45 @@ void sdErrorCheck(void) {
   while(1);
 }
 
-// Files are 'touch tone phone' DTMF tones, P = #, S = *
-// Most phones don't have A, B, C, and D tones.
-// file names are of the form DTMFx.WAV where x is one of
-// the letters from fileLetter[]
-char fileLetter[] =  {'0', '1', '2', '3', '4', '5', '6', 
-      '7', '8', '9', 'A', 'B', 'C', 'D', 'P', 'S'}; 
-      
-// index of DTMF files in the root directory
-uint16_t fileIndex[FILE_COUNT];
-/*
- * Find files and save file index.  A file's index is is the
- * index of it's directory entry in it's directory file. 
- */
-void indexFiles(void) {
-  char name[10];
-  
-  // copy flash string to RAM
-  strcpy_P(name, PSTR("DTMFx.WAV"));
-  
-  for (uint8_t i = 0; i < FILE_COUNT; i++) {
-    
-    Serial.println(name);
-
-    // Make file name
-    name[4] = fileLetter[i];
-    
-    Serial.println(fileLetter[i]);
-
-    // Open file by name
-    if (!file.open(root, name)) error("open by name");
-    
-    // Save file's index (byte offset of directory entry divided by entry size)
-    // Current position is just after entry so subtract one.
-    fileIndex[i] = root.readPosition()/32 - 1;   
+// Plays a full file from beginning to end with no pause.
+void playcomplete(char *name) {
+  // call our helper to find and play this name
+  playfile(name);
+  while (wave.isplaying) {
+  // do nothing while its playing
   }
-  PgmPrintln("Done");
+  // now its done playing
 }
-/*
- * Play file by index and print latency in ms
- */
-void playByIndex(int index) {
-  // for (uint8_t i = 0; i < FILE_COUNT; i++) {
-    
-    // start time
-    // uint32_t t = millis();
-    
-    // open by index
-    if (!file.open(root, fileIndex[index])) {
-      error("open by index");
-    }
-    
-    // create and play Wave
-    if (!wave.create(file)) error("wave.create");
-    wave.play();
-    
-    // // print time to open file and start play
-    // Serial.println(millis() - t);
-    
-    // // stop after PLAY_TIME ms
-    // while((millis() - t) < PLAY_TIME);
-    // wave.stop();
-    
-    // check for play errors
-    sdErrorCheck();
-  // }
-  PgmPrintln("Done");
+
+void playfile(char *name) {
+  // see if the wave object is currently doing something
+  if (wave.isplaying) {// already playing something, so stop it!
+    wave.stop(); // stop it
+  }
+  // look in the root directory and open the file
+  if (!f.open(root, name)) {
+    putstring("Couldn't open file "); Serial.print(name); return;
+  }
+  // OK read the file and turn it into a wave object
+  if (!wave.create(f)) {
+    putstring_nl("Not a valid WAV"); return;
+  }
+  
+  // ok time to play! start playback
+  wave.play();
 }
+
+// this handy function will return the number of bytes currently free in RAM, great for debugging!   
+int freeRam(void)
+{
+  extern int  __bss_end; 
+  extern int  *__brkval; 
+  int free_memory; 
+  if((int)__brkval == 0) {
+    free_memory = ((int)&free_memory) - ((int)&__bss_end); 
+  }
+  else {
+    free_memory = ((int)&free_memory) - ((int)__brkval); 
+  }
+  return free_memory; 
+} 
