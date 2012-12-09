@@ -27,7 +27,6 @@ Global Variables
 ==================================================================== */
 
 // pins
-int calibrationButton = 7;
 int micPin = A0;
 
 // boolean flags
@@ -52,20 +51,21 @@ Setup Loop
 ==================================================================== */
 void setup() {
 	Serial.begin(9600);
-	pinMode(calibrationButton, INPUT);
 	pinMode(micPin, INPUT);
+
+	// ********* from WaveHC example code: *************************** //
 
 	putstring("Free RAM: ");       // This can help with debugging, running out of RAM is bad
 	Serial.println(freeRam());      // if this is under 150 bytes it may spell trouble!
 	//  if (!card.init(true)) { //play with 4 MHz spi if 8MHz isn't working for you
 	if (!card.init()) {         //play with 8 MHz spi (default faster!)  
-	putstring_nl("Card init. failed!");  // Something went wrong, lets print out why
-	sdErrorCheck();
-	while(1);                            // then 'halt' - do nothing!
+		putstring_nl("Card init. failed!");  // Something went wrong, lets print out why
+		sdErrorCheck();
+		while(1);                            // then 'halt' - do nothing!
 	}
 
 	// enable optimize read - some cards may timeout. Disable if you're having problems
-	card.partialBlockRead(true);
+	// card.partialBlockRead(true);
 
 	// Now we will look for a FAT partition!
 	uint8_t part;
@@ -74,9 +74,9 @@ void setup() {
 	  break;                             // we found one, lets bail
 	}
 	if (part == 5) {                       // if we ended up not finding one  :(
-	putstring_nl("No valid FAT partition!");
-	sdErrorCheck();      // Something went wrong, lets print out why
-	while(1);                            // then 'halt' - do nothing!
+		putstring_nl("No valid FAT partition!");
+		sdErrorCheck();      // Something went wrong, lets print out why
+		while(1);                            // then 'halt' - do nothing!
 	}
 
 	// Lets tell the user about what we found
@@ -87,12 +87,15 @@ void setup() {
 
 	// Try to open the root directory
 	if (!root.openRoot(vol)) {
-	putstring_nl("Can't open root dir!"); // Something went wrong,
-	while(1);                             // then 'halt' - do nothing!
+		putstring_nl("Can't open root dir!"); // Something went wrong,
+		while(1);                             // then 'halt' - do nothing!
 	}
 
 	// Whew! We got past the tough parts.
 	putstring_nl("Ready!");
+
+	// ********* end WaveHC example code: *************************** //
+
 }
 
 /* ====================================================================
@@ -100,105 +103,100 @@ Void Loop
 ==================================================================== */
 
 void loop() {
-	// // Part 1: Calibration
-	// if (calibrated == false) {
-	// 	// 0. wait for user to press button when things are quiet 
-	// 	while (digitalRead(calibrationButton) == 1) {
-	// 		// light LED?
-	// 		continue;
-	// 	}
-
-	// 	// 1. store a reading of values over time: MY_SIZE
-	// 	int counter = 0;
-	// 	int silenceArray[MY_SIZE];
-	// 	while (counter < MY_SIZE) {
-	// 		silenceArray[counter] = analogRead(micPin);
-	// 		counter ++;
-	// 	}
-
-	// 	// 2. find  & define silence average of these values
-	// 	int sum = 0;
-	// 	for (int i=0; i<MY_SIZE; i++) {
-	// 		sum += silenceArray[i];
-	// 	}
-	// 	averageSilence = sum / MY_SIZE;  
-	// 	calibrated = true;
-	// }
-
-
-	// // Part 2: Identifying Speech
-	// // A. Take measures until reading at least two talking measurements 
-	// do {
-	// 	// 0. create an array of measured values
-	// 	int counter = 0;
-	// 	int measureArray[MEASURE];
-	// 	while (counter < MEASURE) {
-	// 		measureArray[counter] = analogRead(micPin);
-	// 		counter ++;
-	// 	}
-
-	// 	// 1. average values
-	// 	int sum = 0;
-	// 	for (int i=0; i<MEASURE; i++) {
-	// 		sum += measureArray[i];
-	// 	}
-	// 	measureAverage = sum/MEASURE;
-
-	// 	// 2. compare this to silence threshold
-	// 	if (measureAverage > averageSilence) {
-	// 		timesAboveThreshold ++;
-	// 	}
-	// 	if (timesAboveThreshold > TALKING_MEASURES) {
-	// 		talking = true;
-	// 	}
+	// Part 1: Calibration
+	if (calibrated == false) {
+		// 0. wait for Charles to tell us to calibrate.
+		Serial.println("Loading...");
+		delay(3000);
+		playcomplete("1.wav");
+		// 1. store a reading of values over time: MY_SIZE
+		// but first an initial reading:
+		averageSilence = analogRead(micPin);
+		int counter = 0;
+		while (counter <= MY_SIZE) {
+			int temp = analogRead(micPin);
+			averageSilence = (averageSilence + temp)/2; // averaging each time
+			counter ++;
+			Serial.print("avg silence is ");
+			Serial.print(averageSilence);
+			Serial.print(" in round ");
+			Serial.println(counter);
+		}
+		Serial.println("End of calibration check.");
+		Serial.print("Average silence is: ");
+		Serial.println(averageSilence);
+  
+		calibrated = true;
+		playcomplete("2.wav");
+	}
 
 
-	// } while ((talking == false) || (measureAverage <= averageSilence)); // will exit loop when talking is true AND silence is achieved
+	// Part 2: Identifying Speech
+	// A. Take measures until reading at least two talking measurements 
+	do {
+		// 0. create an array of measured values
+		int counter = 0;
+		int measureArray[MEASURE];
+		while (counter < MEASURE) {
+			measureArray[counter] = analogRead(micPin);
+			counter ++;
+		}
 
-	playcomplete("1.wav");
-	playcomplete("2.wav");
+		// 1. average values
+		int sum = 0;
+		for (int i=0; i<MEASURE; i++) {
+			sum += measureArray[i];
+		}
+		measureAverage = sum/MEASURE;
+
+		// 2. compare this to silence threshold
+		if (measureAverage > averageSilence) {
+			timesAboveThreshold ++;
+		}
+		if (timesAboveThreshold > TALKING_MEASURES) {
+			talking = true;
+		}
+
+
+	} while ((talking == false) || (measureAverage <= averageSilence)); // will exit loop when talking is true AND silence is achieved
+
 	// Part 3: Responding
-	switch (random(1, 9)) {
-	    case 1:
-	      playcomplete("3.wav");
-	      break;
-	    case 2:
-	      playcomplete("4.wav");
-	      break;
-	    case 3:
-	      playcomplete("5.wav");
-	      break;
-	    case 4:
-	      playcomplete("6.wav");
-	      break;
-	    case 5:
-	      playcomplete("7.wav");
-	      break;
-	    case 6:
-	      playcomplete("8.wav");
-	      break;
-	    case 7:
-	      playcomplete("9.wav");
-	      break;
-	    case 8:
-	      playcomplete("10.wav");
-	      break;
-	    case 9:
-	      playcomplete("11.wav");
-	      break;
-	  }
-
-
-	// generate random number corresponding to aduio response file index
-	// int randomFile = random(2, FILE_COUNT);
-	// playByIndex(randomFile);
+	// switch (random(1, 9)) {
+	//     case 1:
+	//       playcomplete("3.wav");
+	//       break;
+	//     case 2:
+	//       playcomplete("4.wav");
+	//       break;
+	//     case 3:
+	//       playcomplete("5.wav");
+	//       break;
+	//     case 4:
+	//       playcomplete("6.wav");
+	//       break;
+	//     case 5:
+	//       playcomplete("7.wav");
+	//       break;
+	//     case 6:
+	//       playcomplete("8.wav");
+	//       break;
+	//     case 7:
+	//       playcomplete("9.wav");
+	//       break;
+	//     case 8:
+	//       playcomplete("10.wav");
+	//       break;
+	//     case 9:
+	//       playcomplete("11.wav");
+	//       break;
+	//   }
 }
 
 /* ====================================================================
 Functions
 ==================================================================== */
 
-// from WaveHC example code (chunks cut out for simplicity and function):
+// ********* from WaveHC example code: *************************** //
 
 /////////////////////////////////// HELPERS
 /*
@@ -225,7 +223,10 @@ void sdErrorCheck(void) {
 // Plays a full file from beginning to end with no pause.
 void playcomplete(char *name) {
   // call our helper to find and play this name
-  playfile(name);
+	Serial.println("before playfile");
+	Serial.println(name);
+    playfile(name);
+	Serial.println("after playfile");
   while (wave.isplaying) {
   // do nothing while its playing
   }
@@ -233,21 +234,27 @@ void playcomplete(char *name) {
 }
 
 void playfile(char *name) {
+	Serial.println("inside playfile()");
   // see if the wave object is currently doing something
   if (wave.isplaying) {// already playing something, so stop it!
     wave.stop(); // stop it
+    Serial.println("wave.stop()");
   }
+  Serial.println("past wave.isplaying check");
   // look in the root directory and open the file
   if (!f.open(root, name)) {
     putstring("Couldn't open file "); Serial.print(name); return;
-  }
+  } 
+  Serial.println("past cannot open file check");
   // OK read the file and turn it into a wave object
   if (!wave.create(f)) {
     putstring_nl("Not a valid WAV"); return;
   }
+  Serial.println("past create wav file check");
   
   // ok time to play! start playback
   wave.play();
+  Serial.println("wave.play()");
 }
 
 // this handy function will return the number of bytes currently free in RAM, great for debugging!   
@@ -264,3 +271,5 @@ int freeRam(void)
   }
   return free_memory; 
 } 
+
+// ********* end WaveHC example code: *************************** //
