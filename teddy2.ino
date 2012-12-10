@@ -144,7 +144,6 @@ void loop() {
 		// will break when there is some noise
 	}
 	Serial.println("Heard something loud!");
-	delay(10);
 	int avgVol = analogRead(micPin);
 	// after hearing noise, start averaging the volume
 	while ((avgVol < SILENCE-SMALLBUMPER) || (avgVol > SILENCE+SMALLBUMPER)) {
@@ -154,6 +153,7 @@ void loop() {
 		// will break when it levels back out (ideally...)
 	}
 	Serial.println("You stopped talking!");
+	delay(300);
 	
 	// Part 3: Responding
 	// pick a random response not the same as the previous
