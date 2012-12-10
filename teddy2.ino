@@ -39,6 +39,8 @@ bool talking = false;
 #define TALKING_MEASURES 2 // # of measures for talking threshold
 #define FILE_COUNT 11 // number of WAV files on SD card
 #define error(msg) error_P(PSTR(msg))
+#define BIGBUMPER 12 // for silence threshold
+#define SMALLBUMPER 3
 
 // variable ints
 int timesAboveThreshold = 0; // a measure of number of intervals talking is true
@@ -132,9 +134,155 @@ void loop() {
 	// }
 	// #define SILENCE averageSilence // set it constant for the rest of the program
 	#define SILENCE 340 // for speeding up debugging
+	// Part 2. Identifying Speech 
+	int volume = analogRead(micPin);
+	// continue looping while volume is close to silence
+	while ((volume < SILENCE+BIGBUMPER) && (volume > SILENCE-BIGBUMPER)) {
+		volume = analogRead(micPin);
+		Serial.print("Currently silent ==> Volume: ");
+		Serial.println(volume);
+		// will break when there is some noise
+	}
+	Serial.println("Heard something loud!");
+	delay(10);
+	int avgVol = analogRead(micPin);
+	// after hearing noise, start averaging the volume
+	while ((avgVol < SILENCE-SMALLBUMPER) || (avgVol > SILENCE+SMALLBUMPER)) {
+		avgVol = (avgVol+analogRead(micPin))/2;
+		Serial.print("Currently talking ==> Average volume: ");
+		Serial.println(avgVol);
+		// will break when it levels back out (ideally...)
+	}
+	Serial.println("You stopped talking!");
+	
+	// Part 3: Responding
+	// pick a random response not the same as the previous
+	while (true) {
+		int temp = random(1, 9);
+		if (temp != lastResponse) {
+			lastResponse = temp;
+			break;
+		}
+	}
+	// play random response
+	switch (lastResponse) { 
+		case 1:
+			playcomplete("3.wav");
+			break;
+		case 2:
+			playcomplete("4.wav");
+			break;
+		case 3:
+			playcomplete("5.wav");
+			break;
+		case 4:
+			playcomplete("6.wav");
+			break;
+		case 5:
+			playcomplete("7.wav");
+			break;
+		case 6:
+			playcomplete("8.wav");
+			break;
+		case 7:
+			playcomplete("9.wav");
+			break;
+		case 8:	
+			playcomplete("10.wav");
+			break;
+		case 9:
+			playcomplete("11.wav");
+			break;
+	}
+	Serial.println("Reached the end of loop, restarting.");
+	// restart loop
+}
+
+/* ====================================================================
+Functions
+==================================================================== */
+
+// ********* from WaveHC example code: *************************** //
+
+/////////////////////////////////// HELPERS
+/*
+ * print error message and halt
+ */
+ void error_P(const char *str) {
+ 	PgmPrint("Error: ");
+ 	SerialPrint_P(str);
+ 	sdErrorCheck();
+ 	while(1);
+ }
+/*
+ * print error message and halt if SD I/O error, great for debugging!
+ */
+ void sdErrorCheck(void) {
+ 	if (!card.errorCode()) return;
+ 	PgmPrint("\r\nSD I/O error: ");
+ 	Serial.print(card.errorCode(), HEX);
+ 	PgmPrint(", ");
+ 	Serial.println(card.errorData(), HEX);
+ 	while(1);
+ }
+
+// Plays a full file from beginning to end with no pause.
+ void playcomplete(char *name) {
+  // call our helper to find and play this name
+ 	// Serial.println("before playfile");
+ 	// Serial.println(name);
+ 	playfile(name);
+ 	// Serial.println("after playfile");
+ 	while (wave.isplaying) {
+  // do nothing while its playing
+ 	}
+  // now its done playing
+ }
+
+ void playfile(char *name) {
+ 	// Serial.println("inside playfile()");
+  // see if the wave object is currently doing something
+  if (wave.isplaying) {// already playing something, so stop it!
+    wave.stop(); // stop it
+    // Serial.println("wave.stop()");
+}
+// Serial.println("past wave.isplaying check");
+  // look in the root directory and open the file
+if (!f.open(root, name)) {
+	putstring("Couldn't open file "); Serial.print(name); return;
+} 
+// Serial.println("past cannot open file check");
+  // OK read the file and turn it into a wave object
+if (!wave.create(f)) {
+	putstring_nl("Not a valid WAV"); return;
+}
+// Serial.println("past create wav file check");
+
+  // ok time to play! start playback
+wave.play();
+// Serial.println("wave.play()");
+}
+
+// this handy function will return the number of bytes currently free in RAM, great for debugging!   
+int freeRam(void)
+{
+	extern int  __bss_end; 
+	extern int  *__brkval; 
+	int free_memory; 
+	if((int)__brkval == 0) {
+		free_memory = ((int)&free_memory) - ((int)&__bss_end); 
+	}
+	else {
+		free_memory = ((int)&free_memory) - ((int)__brkval); 
+	}
+	return free_memory; 
+} 
+
+// ********* end WaveHC example code: *************************** //
 
 
-	// Part 2: Identifying Speech
+// old attempt at identifying Speech
+// Part 2: Identifying Speech
 	// A. Take measures until reading at least two talking measurements 
 	// do {
 	// 	// 0. take a sampling of the volume level in increments of MEASURE
@@ -177,127 +325,3 @@ void loop() {
 	// } else {
 	// 	Serial.println("Major problems are happening. give up now.");
 	// }
-
-	// Part 3: Responding
-	// pick a random response not the same as the previous
-	while (true) {
-		int temp = random(1, 9);
-		if (temp != lastResponse) {
-			lastResponse = temp;
-			break;
-		}
-	}
-	// play random response
-	switch (temp) { 
-		case 1:
-			playcomplete("3.wav");
-			break;
-		case 2:
-			playcomplete("4.wav");
-			break;
-		case 3:
-			playcomplete("5.wav");
-			break;
-		case 4:
-			playcomplete("6.wav");
-			break;
-		case 5:
-			playcomplete("7.wav");
-			break;
-		case 6:
-			playcomplete("8.wav");
-			break;
-		case 7:
-			playcomplete("9.wav");
-			break;
-		case 8:	
-			playcomplete("10.wav");
-			break;
-		case 9:
-			playcomplete("11.wav");
-			break;
-	}
-	// restart loop
-}
-
-/* ====================================================================
-Functions
-==================================================================== */
-
-// ********* from WaveHC example code: *************************** //
-
-/////////////////////////////////// HELPERS
-/*
- * print error message and halt
- */
- void error_P(const char *str) {
- 	PgmPrint("Error: ");
- 	SerialPrint_P(str);
- 	sdErrorCheck();
- 	while(1);
- }
-/*
- * print error message and halt if SD I/O error, great for debugging!
- */
- void sdErrorCheck(void) {
- 	if (!card.errorCode()) return;
- 	PgmPrint("\r\nSD I/O error: ");
- 	Serial.print(card.errorCode(), HEX);
- 	PgmPrint(", ");
- 	Serial.println(card.errorData(), HEX);
- 	while(1);
- }
-
-// Plays a full file from beginning to end with no pause.
- void playcomplete(char *name) {
-  // call our helper to find and play this name
- 	Serial.println("before playfile");
- 	Serial.println(name);
- 	playfile(name);
- 	Serial.println("after playfile");
- 	while (wave.isplaying) {
-  // do nothing while its playing
- 	}
-  // now its done playing
- }
-
- void playfile(char *name) {
- 	Serial.println("inside playfile()");
-  // see if the wave object is currently doing something
-  if (wave.isplaying) {// already playing something, so stop it!
-    wave.stop(); // stop it
-    Serial.println("wave.stop()");
-}
-Serial.println("past wave.isplaying check");
-  // look in the root directory and open the file
-if (!f.open(root, name)) {
-	putstring("Couldn't open file "); Serial.print(name); return;
-} 
-Serial.println("past cannot open file check");
-  // OK read the file and turn it into a wave object
-if (!wave.create(f)) {
-	putstring_nl("Not a valid WAV"); return;
-}
-Serial.println("past create wav file check");
-
-  // ok time to play! start playback
-wave.play();
-Serial.println("wave.play()");
-}
-
-// this handy function will return the number of bytes currently free in RAM, great for debugging!   
-int freeRam(void)
-{
-	extern int  __bss_end; 
-	extern int  *__brkval; 
-	int free_memory; 
-	if((int)__brkval == 0) {
-		free_memory = ((int)&free_memory) - ((int)&__bss_end); 
-	}
-	else {
-		free_memory = ((int)&free_memory) - ((int)__brkval); 
-	}
-	return free_memory; 
-} 
-
-// ********* end WaveHC example code: *************************** //
