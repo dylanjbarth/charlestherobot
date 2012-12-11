@@ -101,6 +101,9 @@ void setup() {
 
 	// ********* end WaveHC example code: *************************** //
 
+	// to shuffle the random generator, randomSeed with an unconnected pin
+  randomSeed(analogRead(5));
+
 }
 
 /* ====================================================================
@@ -108,78 +111,79 @@ Void Loop
 ==================================================================== */
 
 void loop() {
-	// // Part 1: Calibration
-	// if (calibrated == false) {
-	// 	// 0. wait for Charles to tell us to calibrate.
-	// 	Serial.println("Loading...");
-	// 	delay(3000);
-	// 	playcomplete("1.wav");
-	// 	// 1. store a reading of values over time: CALIBRATION_TIME
-	// 	// but first an initial reading:
-	// 	averageSilence = analogRead(micPin);
-	// 	int counter = 0;
-	// 	while (counter <= CALIBRATION_TIME) {
-	// 		int temp = analogRead(micPin);
-	// 		averageSilence = (averageSilence + temp)/2; // averaging each time
-	// 		counter ++;
-	// 		Serial.print("avg silence is ");
-	// 		Serial.print(averageSilence);
-	// 		Serial.print(" in round ");
-	// 		Serial.println(counter);
-	// 	}
-	// 	Serial.println("End of calibration check.");
-	// 	Serial.print("Average silence is: ");
-	// 	Serial.println(averageSilence);
+	// Part 1: Calibration
+	if (calibrated == false) {
+		// 0. wait for Charles to tell us to calibrate.
+		Serial.println("Loading...");
+		delay(3000);
+		playcomplete("1.wav");
+		// 1. store a reading of values over time: CALIBRATION_TIME
+		// but first an initial reading:
+		averageSilence = analogRead(micPin);
+		int counter = 0;
+		while (counter <= CALIBRATION_TIME) {
+			int temp = analogRead(micPin);
+			averageSilence = (averageSilence + temp)/2; // averaging each time
+			counter ++;
+			Serial.print("avg silence is ");
+			Serial.print(averageSilence);
+			Serial.print(" in round ");
+			Serial.println(counter);
+		}
+		Serial.println("End of calibration check.");
+		Serial.print("Average silence is: ");
+		Serial.println(averageSilence);
 
-	// 	calibrated = true;
-	// 	playcomplete("2.wav");
-	// }
-	// #define SILENCE averageSilence // set it constant for the rest of the program
-	// // #define SILENCE 340 // for speeding up debugging
-	// // Part 2. Identifying Speech 
-	// int volume = analogRead(micPin);
-	// // continue looping while volume is close to silence
-	// while ((volume < SILENCE+BIGBUMPER) && (volume > SILENCE-BIGBUMPER)) {
-	// 	volume = analogRead(micPin);
-	// 	Serial.print("Currently silent => Volume: ");
-	// 	Serial.println(volume);
-	// 	// will break when there is some noise
-	// }
-	// int avgVol = analogRead(micPin);
-	// Serial.print("You're talking! ======> Vol: ");
-	// Serial.println(avgVol);
-	// // after hearing noise, start averaging the volume
-	// do {
-	// 	while ((avgVol < SILENCE-SMALLBUMPER) || (avgVol > SILENCE+SMALLBUMPER)) {
-	// 		avgVol = (avgVol+analogRead(micPin))/2;
-	// 		Serial.print("Currently talking ==> Average volume: ");
-	// 		Serial.println(avgVol);
-	// 		// will break when it levels back out (ideally...)
-	// 	}
-	// 	Serial.print("I think you stopped talking, but I'm waiting for ");
-	// 	Serial.print(CONVOPAUSE);
-	// 	Serial.println(" seconds to check again.");
-	// 	delay(CONVOPAUSE);
-	// 	// check to see if they start talking again
-	// 	if ((analogRead(micPin) < SILENCE-SMALLBUMPER) || (analogRead(micPin) > SILENCE+SMALLBUMPER)) {
-	// 		stillTalking = true;
-	// 		avgVol = analogRead(micPin); // reset avgVol for when it reenters the loop
-	// 		Serial.print("I think you're still talking...");
-	// 	} else {
-	// 		stillTalking = false;
-	// 	}
+		calibrated = true;
+		playcomplete("2.wav");
+	}
+	#define SILENCE averageSilence // set it constant for the rest of the program
+	// #define SILENCE 340 // for speeding up debugging
+	// Part 2. Identifying Speech 
+	int volume = analogRead(micPin);
+	// continue looping while volume is close to silence
+	while ((volume < SILENCE+BIGBUMPER) && (volume > SILENCE-BIGBUMPER)) {
+		volume = analogRead(micPin);
+		Serial.print("Currently silent => Volume: ");
+		Serial.println(volume);
+		// will break when there is some noise
+	}
+	int avgVol = analogRead(micPin);
+	Serial.print("You're talking! ======> Vol: ");
+	Serial.println(avgVol);
+	// after hearing noise, start averaging the volume
+	do {
+		while ((avgVol < SILENCE-SMALLBUMPER) || (avgVol > SILENCE+SMALLBUMPER)) {
+			avgVol = (avgVol+analogRead(micPin))/2;
+			Serial.print("Currently talking ==> Average volume: ");
+			Serial.println(avgVol);
+			// will break when it levels back out (ideally...)
+		}
+		Serial.print("I think you stopped talking, but I'm waiting for ");
+		Serial.print(CONVOPAUSE);
+		Serial.println(" seconds to check again.");
+		delay(CONVOPAUSE);
+		// check to see if they start talking again
+		if ((analogRead(micPin) < SILENCE-SMALLBUMPER) || (analogRead(micPin) > SILENCE+SMALLBUMPER)) {
+			stillTalking = true;
+			avgVol = analogRead(micPin); // reset avgVol for when it reenters the loop
+			Serial.print("I think you're still talking...");
+		} else {
+			stillTalking = false;
+		}
 
-	// } while(stillTalking == true);
+	} while(stillTalking == true);
 	
 
 	// Part 3: Responding
-	// pick a random response not the same as the previous
-	while (true){
+	// pick a random response not the same as the previous 3
+
+	bool repeat = false;
+	while (repeat == false){
 		Serial.println("Starting the while loop.");
-		response = random(3, FILECOUNT);
+		response = random(3, FILECOUNT+1);
 		Serial.print("Response #: ");
 		Serial.println(response);
-		bool repeat = false;
 		for (int i=0; i<3; i++){
 			// first check for duplicate in the array
 			if (dontRepeatYourself[i] == response){
@@ -212,17 +216,17 @@ void loop() {
 	Serial.println("Attention! Exited the while loop.");
 	Serial.println(response);
 	Serial.println("The above is the final pick.");
-	// // convert filename to char array
-	// String fileName = String(response) + ".wav";
-	// int tempLen = fileName.length()+1;
-	// char fileAsCharArray[tempLen];
-	// fileName.toCharArray(fileAsCharArray, tempLen);
-	// Serial.println(fileAsCharArray);
-	// // play random response
-	// playcomplete(fileAsCharArray);
-	// Serial.println("Reached the end of loop, restarting.");
-	// delay(CONVOPAUSE);
-	// // restart loop
+	// convert filename to char array
+	String fileName = String(response) + ".wav";
+	int tempLen = fileName.length()+1;
+	char fileAsCharArray[tempLen];
+	fileName.toCharArray(fileAsCharArray, tempLen);
+	Serial.println(fileAsCharArray);
+	// play random response
+	playcomplete(fileAsCharArray);
+	Serial.println("Reached the end of loop, restarting.");
+	delay(CONVOPAUSE);
+	// restart loop
 }
 
 /* ====================================================================
