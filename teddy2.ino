@@ -181,46 +181,12 @@ void loop() {
 	}
 	// convert filename to char array
 	String fileName = String(lastResponse) + ".wav";
-	char *fileAsCharArray;
-	fileName.toCharArray(fileAsCharArray, fileName.length());
-	// if (lastResponse < 10){
-	// 	char temp = lastResponse[0];
-	// 	char fileName[5] = {temp, '.', 'w', 'a', 'v'};
-	// } else {
-	// 	char filename[6] = {char(lastResponse[0]), char(lastResponse[1]), '.', 'w', 'a', 'v'};
-	// }
-	Serial.println(fileName);
+	int tempLen = fileName.length()+1;
+	char fileAsCharArray[tempLen];
+	fileName.toCharArray(fileAsCharArray, tempLen);
+	Serial.println(fileAsCharArray);
 	// play random response
 	playcomplete(fileAsCharArray);
-	// switch (lastResponse) { 
-	// 	case 1:
-	// 		playcomplete("3.wav");
-	// 		break;
-	// 	case 2:
-	// 		playcomplete("4.wav");
-	// 		break;
-	// 	case 3:
-	// 		playcomplete("5.wav");
-	// 		break;
-	// 	case 4:
-	// 		playcomplete("6.wav");
-	// 		break;
-	// 	case 5:
-	// 		playcomplete("7.wav");
-	// 		break;
-	// 	case 6:
-	// 		playcomplete("8.wav");
-	// 		break;
-	// 	case 7:
-	// 		playcomplete("9.wav");
-	// 		break;
-	// 	case 8:	
-	// 		playcomplete("10.wav");
-	// 		break;
-	// 	case 9:
-	// 		playcomplete("11.wav");
-	// 		break;
-	// }
 	Serial.println("Reached the end of loop, restarting.");
 	delay(CONVOPAUSE);
 	// restart loop
@@ -307,49 +273,3 @@ int freeRam(void)
 } 
 
 // ********* end WaveHC example code: *************************** //
-
-
-// old attempt at identifying Speech
-// Part 2: Identifying Speech
-	// A. Take measures until reading at least two talking measurements 
-	// do {
-	// 	// 0. take a sampling of the volume level in increments of MEASURE
-	// 	int counter = 0;
-	// 	while (counter < MEASURE) {
-	// 		measureAverage = (measureAverage + analogRead(micPin))/2;
-	// 		counter ++;
-	// 		Serial.print("avg volume is ");
-	// 		Serial.print(measureAverage);
-	// 		Serial.print(" in round ");
-	// 		Serial.println(counter);
-	// 	}
-	// 	Serial.println("End of measure check.");
-	// 	Serial.print("Average volume is: ");
-	// 	Serial.println(measureAverage);
-
-	// 	// 1. compare this to silence threshold
-	// 	if (measureAverage > SILENCE+10) {
-	// 		Serial.println("Greater than silence!");
-	// 		timesAboveThreshold ++;
-	// 	}
-	// 	if (timesAboveThreshold > TALKING_MEASURES) {
-	// 		talking = true;
-	// 	}
-	// } while ((talking == false) || (measureAverage <= SILENCE)); // will exit loop when talking is true AND silence is achieved
-	
-	// // B. Reset measurement tools
-	// timesAboveThreshold = 0; // reset counter
-	// talking = false; // reset flag
-	// measureAverage = analogRead(micPin); // reset measuring
-
-	// // C. Debugging
-	// Serial.print("I would be RESPONDING NOW! because: ");
-	// if ((talking != false) && (measureAverage > SILENCE)){
-	// 	Serial.println("talking != false and measureAvg is greater than SILENCE");
-	// } else if (talking != false){
-	// 	Serial.println("talking != false");
-	// } else if (measureAverage > SILENCE){
-	// 	Serial.println("measureAvg is greater than SILENCE");
-	// } else {
-	// 	Serial.println("Major problems are happening. give up now.");
-	// }
