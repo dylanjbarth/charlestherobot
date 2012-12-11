@@ -40,6 +40,7 @@ bool stillTalking;
 #define BIGBUMPER 13 // for silence threshold
 #define SMALLBUMPER 4 // for silence threshold
 #define CONVOPAUSE 400 // in milliseconds
+#define FILECOUNT 18 // total .wavs
 
 // variable ints
 int timesAboveThreshold = 0; // a measure of number of intervals talking is true
@@ -168,45 +169,58 @@ void loop() {
 
 	} while(stillTalking == true);
 	
+
 	// Part 3: Responding
 	// pick a random response not the same as the previous
 	while (true) {
-		int temp = random(1, 9);
+		int temp = random(1, FILECOUNT-2);
 		if (temp != lastResponse) {
 			lastResponse = temp;
 			break;
 		}
 	}
+	// convert filename to char array
+	String fileName = String(lastResponse) + ".wav";
+	char *fileAsCharArray;
+	fileName.toCharArray(fileAsCharArray, fileName.length());
+	// if (lastResponse < 10){
+	// 	char temp = lastResponse[0];
+	// 	char fileName[5] = {temp, '.', 'w', 'a', 'v'};
+	// } else {
+	// 	char filename[6] = {char(lastResponse[0]), char(lastResponse[1]), '.', 'w', 'a', 'v'};
+	// }
+	Serial.println(fileName);
 	// play random response
-	switch (lastResponse) { 
-		case 1:
-			playcomplete("3.wav");
-			break;
-		case 2:
-			playcomplete("4.wav");
-			break;
-		case 3:
-			playcomplete("5.wav");
-			break;
-		case 4:
-			playcomplete("6.wav");
-			break;
-		case 5:
-			playcomplete("7.wav");
-			break;
-		case 6:
-			playcomplete("8.wav");
-			break;
-		case 7:
-			playcomplete("9.wav");
-			break;
-		case 8:	
-			playcomplete("10.wav");
-			break;
-		case 9:
-			playcomplete("11.wav");
-			break;
-	}
+	playcomplete(fileAsCharArray);
+	// switch (lastResponse) { 
+	// 	case 1:
+	// 		playcomplete("3.wav");
+	// 		break;
+	// 	case 2:
+	// 		playcomplete("4.wav");
+	// 		break;
+	// 	case 3:
+	// 		playcomplete("5.wav");
+	// 		break;
+	// 	case 4:
+	// 		playcomplete("6.wav");
+	// 		break;
+	// 	case 5:
+	// 		playcomplete("7.wav");
+	// 		break;
+	// 	case 6:
+	// 		playcomplete("8.wav");
+	// 		break;
+	// 	case 7:
+	// 		playcomplete("9.wav");
+	// 		break;
+	// 	case 8:	
+	// 		playcomplete("10.wav");
+	// 		break;
+	// 	case 9:
+	// 		playcomplete("11.wav");
+	// 		break;
+	// }
 	Serial.println("Reached the end of loop, restarting.");
 	delay(CONVOPAUSE);
 	// restart loop
