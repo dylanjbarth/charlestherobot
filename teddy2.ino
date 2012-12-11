@@ -32,15 +32,14 @@ int micPin = A0;
 // boolean flags
 bool calibrated = false;
 bool talking = false;
+bool stillTalking;
 
 // const ints
-#define MY_SIZE 500 // sample time length for calibrating silence
-#define MEASURE 32 // sample time length for measuring talking
-#define TALKING_MEASURES 2 // # of measures for talking threshold
-#define FILE_COUNT 11 // number of WAV files on SD card
+#define CALIBRATION_TIME 300 // number of readings for calibrating silence
 #define error(msg) error_P(PSTR(msg))
-#define BIGBUMPER 12 // for silence threshold
-#define SMALLBUMPER 3
+#define BIGBUMPER 13 // for silence threshold
+#define SMALLBUMPER 4 // for silence threshold
+#define CONVOPAUSE 400 // in milliseconds
 
 // variable ints
 int timesAboveThreshold = 0; // a measure of number of intervals talking is true
@@ -107,53 +106,67 @@ Void Loop
 
 void loop() {
 	// Part 1: Calibration
-	// if (calibrated == false) {
-	// 	// 0. wait for Charles to tell us to calibrate.
-	// 	Serial.println("Loading...");
-	// 	delay(3000);
-	// 	playcomplete("1.wav");
-	// 	// 1. store a reading of values over time: MY_SIZE
-	// 	// but first an initial reading:
-	// 	averageSilence = analogRead(micPin);
-	// 	int counter = 0;
-	// 	while (counter <= MY_SIZE) {
-	// 		int temp = analogRead(micPin);
-	// 		averageSilence = (averageSilence + temp)/2; // averaging each time
-	// 		counter ++;
-	// 		Serial.print("avg silence is ");
-	// 		Serial.print(averageSilence);
-	// 		Serial.print(" in round ");
-	// 		Serial.println(counter);
-	// 	}
-	// 	Serial.println("End of calibration check.");
-	// 	Serial.print("Average silence is: ");
-	// 	Serial.println(averageSilence);
+	if (calibrated == false) {
+		// 0. wait for Charles to tell us to calibrate.
+		Serial.println("Loading...");
+		delay(3000);
+		playcomplete("1.wav");
+		// 1. store a reading of values over time: CALIBRATION_TIME
+		// but first an initial reading:
+		averageSilence = analogRead(micPin);
+		int counter = 0;
+		while (counter <= CALIBRATION_TIME) {
+			int temp = analogRead(micPin);
+			averageSilence = (averageSilence + temp)/2; // averaging each time
+			counter ++;
+			Serial.print("avg silence is ");
+			Serial.print(averageSilence);
+			Serial.print(" in round ");
+			Serial.println(counter);
+		}
+		Serial.println("End of calibration check.");
+		Serial.print("Average silence is: ");
+		Serial.println(averageSilence);
 
-	// 	calibrated = true;
-	// 	playcomplete("2.wav");
-	// }
-	// #define SILENCE averageSilence // set it constant for the rest of the program
-	#define SILENCE 340 // for speeding up debugging
+		calibrated = true;
+		playcomplete("2.wav");
+	}
+	#define SILENCE averageSilence // set it constant for the rest of the program
+	// #define SILENCE 340 // for speeding up debugging
 	// Part 2. Identifying Speech 
 	int volume = analogRead(micPin);
 	// continue looping while volume is close to silence
 	while ((volume < SILENCE+BIGBUMPER) && (volume > SILENCE-BIGBUMPER)) {
 		volume = analogRead(micPin);
-		Serial.print("Currently silent ==> Volume: ");
+		Serial.print("Currently silent => Volume: ");
 		Serial.println(volume);
 		// will break when there is some noise
 	}
-	Serial.println("Heard something loud!");
 	int avgVol = analogRead(micPin);
+	Serial.print("You're talking! ======> Vol: ");
+	Serial.println(avgVol);
 	// after hearing noise, start averaging the volume
-	while ((avgVol < SILENCE-SMALLBUMPER) || (avgVol > SILENCE+SMALLBUMPER)) {
-		avgVol = (avgVol+analogRead(micPin))/2;
-		Serial.print("Currently talking ==> Average volume: ");
-		Serial.println(avgVol);
-		// will break when it levels back out (ideally...)
-	}
-	Serial.println("You stopped talking!");
-	delay(300);
+	do {
+		while ((avgVol < SILENCE-SMALLBUMPER) || (avgVol > SILENCE+SMALLBUMPER)) {
+			avgVol = (avgVol+analogRead(micPin))/2;
+			Serial.print("Currently talking ==> Average volume: ");
+			Serial.println(avgVol);
+			// will break when it levels back out (ideally...)
+		}
+		Serial.print("I think you stopped talking, but I'm waiting for ");
+		Serial.print(CONVOPAUSE);
+		Serial.println(" seconds to check again.");
+		delay(CONVOPAUSE);
+		// check to see if they start talking again
+		if ((analogRead(micPin) < SILENCE-SMALLBUMPER) || (analogRead(micPin) > SILENCE+SMALLBUMPER)) {
+			stillTalking = true;
+			avgVol = analogRead(micPin); // reset avgVol for when it reenters the loop
+			Serial.print("I think you're still talking...");
+		} else {
+			stillTalking = false;
+		}
+
+	} while(stillTalking == true);
 	
 	// Part 3: Responding
 	// pick a random response not the same as the previous
@@ -195,6 +208,7 @@ void loop() {
 			break;
 	}
 	Serial.println("Reached the end of loop, restarting.");
+	delay(CONVOPAUSE);
 	// restart loop
 }
 
