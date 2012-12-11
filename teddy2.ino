@@ -177,42 +177,41 @@ void loop() {
 
 	// Part 3: Responding
 	// pick a random response not the same as the previous 3
-
-	bool repeat = false;
-	while (repeat == false){
-		Serial.println("Starting the while loop.");
-		response = random(3, FILECOUNT+1);
-		Serial.print("Response #: ");
-		Serial.println(response);
-		for (int i=0; i<3; i++){
-			// first check for duplicate in the array
-			if (dontRepeatYourself[i] == response){
-				Serial.println("found a repeat");
-				repeat = true;
-			} else {
-				// if it's an initial value, place it into the array here
-				if (dontRepeatYourself[i] == 0){ 
-					Serial.println("just replaced a 0");
-					// this condition will only be satisfied the first time through the loop
-					dontRepeatYourself[i] = response;
-				}
-			}	
-		}
-		Serial.print("Just exited the dupe checking for loop. Response #: ");
-		Serial.println(response);
-		// if it isn't already in the array, break from the loop after appending it in sequence
-		if (repeat == false) {
-			dontRepeatYourself[repeatCounter] = response;
-			if (repeatCounter <= 1){
-				repeatCounter ++; 
-			} else {
-				repeatCounter = 0;
-			}	
-			break;
-		} else {
-			// if it is in the array, pick a new random number.
-		}
-	}
+	response = random(3, FILECOUNT+1);
+	// bool repeat = false;
+	// while (repeat == false){
+	// 	Serial.println("Starting the while loop.");
+	// 	Serial.print("Response #: ");
+	// 	Serial.println(response);
+	// 	for (int i=0; i<3; i++){
+	// 		// first check for duplicate in the array
+	// 		if (dontRepeatYourself[i] == response){
+	// 			Serial.println("found a repeat");
+	// 			repeat = true;
+	// 		} else {
+	// 			// if it's an initial value, place it into the array here
+	// 			if (dontRepeatYourself[i] == 0){ 
+	// 				Serial.println("just replaced a 0");
+	// 				// this condition will only be satisfied the first time through the loop
+	// 				dontRepeatYourself[i] = response;
+	// 			}
+	// 		}	
+	// 	}
+	// 	Serial.print("Just exited the dupe checking for loop. Response #: ");
+	// 	Serial.println(response);
+	// 	// if it isn't already in the array, break from the loop after appending it in sequence
+	// 	if (repeat == false) {
+	// 		dontRepeatYourself[repeatCounter] = response;
+	// 		if (repeatCounter <= 1){
+	// 			repeatCounter ++; 
+	// 		} else {
+	// 			repeatCounter = 0;
+	// 		}	
+	// 		break;
+	// 	} else {
+	// 		// if it is in the array, pick a new random number.
+	// 	}
+	// }
 	Serial.println("Attention! Exited the while loop.");
 	Serial.println(response);
 	Serial.println("The above is the final pick.");
