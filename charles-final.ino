@@ -1,9 +1,37 @@
-// Author: Dylan Barth
-// Class: Vis147a, UCSD FA12
-// Professor: Alicia Gibb
-// Artist's Statement: This project is a blah blah blah 
-// artist's statement.
+/*
+Dylan Barth
+12/11/12
+Piece: "Charles"
+Artist's Statement:
 
+This project poses one big question to the viewer. How can we really 
+be sure that this reality, and our perception of it, truly is 
+meaningful at all? In other words, what actually differentiates our 
+experience and our perception of the world from Charles's? 
+
+Charles follows the most basic rules of conversational flow, 
+albeit roughly, by talking when you finish talking. He does not 
+however even attempt to understand what you are saying, and tends to 
+dominate the conversation with his own robotic ramblings. At times, 
+he even playfully calls attention the obvious disconnect in the 
+dialogue, stating "This conversation feels a bit one-sided, don't you 
+think?" and "Sorry. I feel like my head is full of fluff today." 
+which, of course, it is.
+
+And yet despite his brusque and mechanical nature, it is difficult 
+not to personify Charles. He has a name, a face, a charming British 
+accent, and a personality, despite only knowing how to say 15 
+different things. Clearly a simpleton, but at times, it isn't hard 
+to imagine what type of person Charles might be, if given the 
+computational bandwidth and exceptional equipment we humans have. 
+
+We look at Charles, and with our impressive brains, sensory organs, 
+complex networks of neurons and organic computational machinery, 
+could hardly imagine living a life so limited as Charles does. Yet 
+on our own scale, are we really so far removed from a microphone, 
+a speaker, and a simple computational device directing the symphony?  
+
+*/
 
 /* ====================================================================
 Wave Shield library and dependencies from: http://www.ladyada.net/make/waveshield/libraryhc.html
@@ -47,8 +75,7 @@ int timesAboveThreshold = 0; // a measure of number of intervals talking is true
 int averageSilence = 0; // used to hold avg silence values
 int measureAverage = 0; // used to hold mic sampling values
 int response = 0;
-int repeatCounter = 0;
-int dontRepeatYourself[3]; // used so that responses aren't repeated
+int lastResponse = 0;
 
 
 /* ====================================================================
@@ -177,41 +204,13 @@ void loop() {
 
 	// Part 3: Responding
 	// pick a random response not the same as the previous 3
-	response = random(3, FILECOUNT+1);
-	// bool repeat = false;
-	// while (repeat == false){
-	// 	Serial.println("Starting the while loop.");
-	// 	Serial.print("Response #: ");
-	// 	Serial.println(response);
-	// 	for (int i=0; i<3; i++){
-	// 		// first check for duplicate in the array
-	// 		if (dontRepeatYourself[i] == response){
-	// 			Serial.println("found a repeat");
-	// 			repeat = true;
-	// 		} else {
-	// 			// if it's an initial value, place it into the array here
-	// 			if (dontRepeatYourself[i] == 0){ 
-	// 				Serial.println("just replaced a 0");
-	// 				// this condition will only be satisfied the first time through the loop
-	// 				dontRepeatYourself[i] = response;
-	// 			}
-	// 		}	
-	// 	}
-	// 	Serial.print("Just exited the dupe checking for loop. Response #: ");
-	// 	Serial.println(response);
-	// 	// if it isn't already in the array, break from the loop after appending it in sequence
-	// 	if (repeat == false) {
-	// 		dontRepeatYourself[repeatCounter] = response;
-	// 		if (repeatCounter <= 1){
-	// 			repeatCounter ++; 
-	// 		} else {
-	// 			repeatCounter = 0;
-	// 		}	
-	// 		break;
-	// 	} else {
-	// 		// if it is in the array, pick a new random number.
-	// 	}
-	// }
+	while(true){
+		response = random(3, FILECOUNT+1);
+		if (response != lastResponse){
+			lastResponse = response;
+			break;
+		}
+	}
 	Serial.println("Attention! Exited the while loop.");
 	Serial.println(response);
 	Serial.println("The above is the final pick.");
@@ -222,6 +221,7 @@ void loop() {
 	fileName.toCharArray(fileAsCharArray, tempLen);
 	Serial.println(fileAsCharArray);
 	// play random response
+	delay(CONVOPAUSE);
 	playcomplete(fileAsCharArray);
 	Serial.println("Reached the end of loop, restarting.");
 	delay(CONVOPAUSE);
